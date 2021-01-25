@@ -16,7 +16,7 @@ namespace RhythmsGonnaGetYou
             Console.WriteLine("'VIEW SIGNED BANDS' - View all the bands in the database that are signed");
             Console.WriteLine("'VIEW UNSIGNED BANDS' - View all bands in the database that are not signed");
             Console.WriteLine("'VIEW ALBUMS' - View all albums in the database ordered by their release date");
-            Console.WriteLine("'VIEW BANDS ALBUMS' - View all albums associated with a particular band name");
+            Console.WriteLine("'VIEW BANDS ALBUMS' - View all albums and songs associated with a particular band name");
             Console.WriteLine("'SIGN BAND' - Sign a particular band to Broken Records Label");
             Console.WriteLine("'RELEASE BAND' - Release a particular band from Broken Records Label");
             Console.WriteLine("EXIT - Exit The Broken Records Label's application\n");
@@ -212,14 +212,72 @@ namespace RhythmsGonnaGetYou
         static void ViewBands(bool allBands, bool isSigned)
         {
             var context = new BrokenRecordLabelContext();
-            foreach (var band in context.Bands)
+            if (allBands)
             {
-                Console.WriteLine($"\n{band.Name}, with {band.NumberOfMembers} members, from {band.CountryOfOrigin}, has a {band.Style} style");
-                Console.WriteLine($"and can be reached through {band.ContactName} at {band.ContactPhoneNumber}");
+                foreach (var band in context.Bands)
+                {
+                    Console.WriteLine($"\n{band.Name}, with {band.NumberOfMembers} members, from {band.CountryOfOrigin}, has a {band.Style} style");
+                    Console.WriteLine($"and can be reached at {band.Website} or through {band.ContactName} at {band.ContactPhoneNumber}");
+                }
+            }
+            else
+            {
+                foreach (var band in context.Bands.Where(band => band.IsSigned == isSigned))
+                {
+                    Console.WriteLine($"\n{band.Name}, with {band.NumberOfMembers} members, from {band.CountryOfOrigin}, has a {band.Style} style");
+                    Console.WriteLine($"and can be reached at {band.Website} through {band.ContactName} at {band.ContactPhoneNumber}");
+                }
             }
         }
 
 
+        static void ViewAlbums(bool allAlbums)
+        {
+            var context = new BrokenRecordLabelContext();
+            if (allAlbums)
+            {
+                foreach (var album in context.Albums.Include(album => album.Band).OrderBy(album => album.ReleaseDate))
+                {
+                    Console.Write($"\n{album.Title}, created by {album.Band.Name} ");
+                    if (album.IsExplicit)
+                    {
+                        Console.WriteLine("is explicit");
+                    }
+                    else
+                    {
+                        Console.WriteLine(" is not explicit");
+                    }
+                    Console.WriteLine($"and was released on {album.ReleaseDate}");
+                }
+            }
+            else
+            {
+                var bandsAlbumsToViewName = GetDetails("name", "band", "that you'd like to see all albums for");
+                foreach (var song in context.Songs.Include(song => song.Album).ThenInclude(album => album.Band).Where(song => song.Album.Band.Name == bandsAlbumsToViewName))
+                {
+                    Console.WriteLine($"\nTrack {song.TrackNumber} - {song.Title} - {song.Duration} long, is found on {song.Album.Title}");
+                }
+            }
+        }
+
+
+        static void SignUnsign(bool sign)
+        {
+            var context = new BrokenRecordLabelContext();
+            var bandToSignOrUnsignsName = GetDetails("name", "band", "");
+            var bandToSignOrUnsign = context.Bands.FirstOrDefault(band => band.Name == bandToSignOrUnsignsName);
+            if (sign)
+            {
+                bandToSignOrUnsign.IsSigned = true;
+                Console.WriteLine($"{bandToSignOrUnsign.Name} were successfully signed!");
+            }
+            else
+            {
+                bandToSignOrUnsign.IsSigned = false;
+                Console.WriteLine($"\n{bandToSignOrUnsign.Name} were successfully released!");
+            }
+            context.SaveChanges();
+        }
         static void Main(string[] args)
         {
             Banner("    Welcome to The Broken Records Label!");
@@ -246,24 +304,31 @@ namespace RhythmsGonnaGetYou
                         choice = Menu();
                         break;
                     case "VIEW BANDS":
+                        ViewBands(true, false);
                         choice = Menu();
                         break;
                     case "VIEW SIGNED BANDS":
+                        ViewBands(false, true);
                         choice = Menu();
                         break;
                     case "VIEW UNSIGNED BANDS":
+                        ViewBands(false, false);
                         choice = Menu();
                         break;
                     case "VIEW ALBUMS":
+                        ViewAlbums(true);
                         choice = Menu();
                         break;
                     case "VIEW BANDS ALBUMS":
+                        ViewAlbums(false);
                         choice = Menu();
                         break;
                     case "SIGN BAND":
+                        SignUnsign(true);
                         choice = Menu();
                         break;
                     case "RELEASE BAND":
+                        SignUnsign(false);
                         choice = Menu();
                         break;
                     default:
