@@ -42,7 +42,7 @@ Bands
 - Style VARCHAR (32)
 - IsSigned BOOLEAN
 - ContactName VARCHAR (21)
-- ContactPhoneNumber INT
+- ContactPhoneNumber BIGINT
 
 Albums
 
